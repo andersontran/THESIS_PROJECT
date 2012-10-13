@@ -1,6 +1,13 @@
-// Copyright 2007 Google Inc. All Rights Reserved.
-
 package com.google.appinventor.components.runtime;
+
+import com.google.appinventor.components.annotations.DesignerComponent;
+import com.google.appinventor.components.annotations.DesignerProperty;
+import com.google.appinventor.components.annotations.PropertyCategory;
+import com.google.appinventor.components.annotations.SimpleEvent;
+import com.google.appinventor.components.annotations.SimpleObject;
+import com.google.appinventor.components.annotations.SimpleProperty;
+import com.google.appinventor.components.common.ComponentCategory;
+import com.google.appinventor.components.common.YaVersion;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,29 +18,54 @@ import java.net.SocketException;
 import java.util.HashSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import com.google.appinventor.components.annotations.DesignerComponent;
-import com.google.appinventor.components.annotations.PropertyCategory;
-import com.google.appinventor.components.annotations.SimpleEvent;
-import com.google.appinventor.components.annotations.SimpleObject;
-import com.google.appinventor.components.annotations.SimpleProperty;
-import com.google.appinventor.components.common.ComponentCategory;
-import com.google.appinventor.components.common.YaVersion;
+//import org.microbridge.server.AbstractServerListener;
+//import org.microbridge.server.Client;
+//import org.microbridge.server.Server;
+//import org.microbridge.server.ServerListener;
+
 
 /**
- * Button with the ability to launch events on initialization, focus
- * change, or a user click.  It is implemented using
- * {@link android.widget.Button}.
+ * Physical world component that can detect shaking and measure
+ * acceleration in three dimensions.  It is implemented using
+ * android.hardware.SensorListener
+ * (http://developer.android.com/reference/android/hardware/SensorListener.html).
+ *
+ * <p>From the Android documentation:
+ * "Sensor values are acceleration in the X, Y and Z axis, where the X axis
+ * has positive direction toward the right side of the device, the Y axis has
+ * positive direction toward the top of the device and the Z axis has
+ * positive direction toward the front of the device. The direction of the
+ * force of gravity is indicated by acceleration values in the X, Y and Z
+ * axes. The typical case where the device is flat relative to the surface of
+ * the Earth appears as -STANDARD_GRAVITY in the Z axis and X and Y values
+ * close to zero. Acceleration values are given in SI units (m/s^2)."
  *
  */
-@DesignerComponent(version = YaVersion.BUTTON_COMPONENT_VERSION,
-    category = ComponentCategory.BASIC,
-    description = "Button with the ability to detect clicks.  Many aspects " +
-    "of its appearance can be changed, as well as whether it is clickable " +
-    "(<code>Enabled</code>), can be changed in the Designer or in the Blocks " +
-    "Editor.")
+// TODO(user): ideas - event for knocking
+@DesignerComponent(version = YaVersion.ACCELEROMETERSENSOR_COMPONENT_VERSION,
+    description = "<p>Non-visible component that can detect shaking and " +
+    "measure acceleration approximately in three dimensions using SI units " +
+    "(m/s<sup>2</sup>).  The components are: <ul>" +
+    "<li> <strong>xAccel</strong>: 0 when the phone is at rest on a flat " +
+    "     surface, positive when the phone is tilted to the right (i.e., " +
+    "     its left side is raised), and negative when the phone is tilted " +
+    "     to the left (i.e., its right size is raised).</li> " +
+    "<li> <strong>yAccel</strong>: 0 when the phone is at rest on a flat " +
+    "     surface, positive when its bottom is raised, and negative when " +
+    "     its top is raised. </li> " +
+    "<li> <strong>zAccel</strong>: Equal to -9.8 (earth's gravity in meters per " +
+    "     second per second when the device is at rest parallel to the ground " +
+    "     with the display facing up, " +
+    "     0 when perpindicular to the ground, and +9.8 when facing down.  " +
+    "     The value can also be affected by accelerating it with or against " +
+    "     gravity. </li></ul></p> ",
+    category = ComponentCategory.SENSORS,
+    nonVisible = true,
+    iconName = "images/seeeduinocomponent.png")
 @SimpleObject
-public final class Button extends ButtonBase {
-
+public class SeeeduinoComponent extends AndroidNonvisibleComponent
+	implements OnStopListener, OnResumeListener, Deleteable {
+	
 	interface ServerListener
 	{
 
@@ -407,18 +439,13 @@ public final class Button extends ButtonBase {
 		Server server = null;
 		
 		private int adcSensorValue=10;
-		boolean LEDState = false ; //initially OFF
-	
-  /**
-   * Creates a new Button component.
-   *
-   * @param container container, component will be placed in
-   */
-  public Button(ComponentContainer container) {
-	  
-	    super(container);
-	    
-	  try
+		
+	public SeeeduinoComponent(ComponentContainer container) {
+		super(container.$form());
+		form.registerForOnResume(this);
+		form.registerForOnStop(this);
+		
+		try
 		{
 			server = new Server(4568); //Use the same port number used in ADK Main Board firmware
 			server.start();			
@@ -433,80 +460,62 @@ public final class Button extends ButtonBase {
 			@Override
 			public void onReceive(Client client, byte[] data)
 			{
-
+ 
 				if (data.length<2) return;
 				adcSensorValue = (data[0] & 0xff) | ((data[1] & 0xff) << 8);
-
-
+ 
+ 
 			}
-
+ 
 		});
+	}
+
+	// OnResumeListener implementation
+
+	@Override
+	public void onResume() {
+		// if (enabled) {
+		startListening();
+		// }
+	}
+
+	private void startListening() {
+		// TODO Auto-generated method stub
+
+	}
+
+	// OnStopListener implementation
+
+	@Override
+	public void onStop() {
+		// if (enabled) {
+		stopListening();
+		// }
+	}
+
+	private void stopListening() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	// Deleteable implementation
+
+	@Override
+	public void onDelete() {
+		// if (enabled) {
+		stopListening();
+		// }
+	}
 	
-  }
-
- @Override
-  public void click() {
-    // Call the users Click event handler. Note that we distinguish the click() abstract method
-    // implementation from the Click() event handler method.
-    Click();
-  }
-
-  /**
-   * Indicates a user has clicked on the button.
-   */
-  @SimpleEvent
-  public void Click() {
-    byte data; 
-    
-// Toggle the state of LED
-if(LEDState == true)
-{
-	LEDState = false;
-	data = 0;
-	//bOutPutLED.setText("LED Off");
-}
-else
-{
-	LEDState = true;
-	data = 1;
-	//bOutPutLED.setText("LED On");
-}
-
-try
-{
-	//Send the state of LED to ADK Main Board as a byte
-	server.send(new byte[] {(byte) data});
-} catch (IOException e)
-{
-	//Log.e("Seeeduino ADK", "problem sending TCP message", e);
-}
-	  
-    EventDispatcher.dispatchEvent(this, "Click");
-  }
-
-  @Override
-  public boolean longClick() {
-    // Call the users Click event handler. Note that we distinguish the longclick() abstract method
-    // implementation from the LongClick() event handler method.
-    return LongClick();
-  }
-
-  /**
-   * Indicates a user has long clicked on the button.
-   */
-  @SimpleEvent
-  public boolean LongClick() {
-    return EventDispatcher.dispatchEvent(this, "LongClick");
-  }
-  
 	/**
-   * Returns the adcSensorValue.
-   *
-   * @return  adcSensorValue
-   */
-  @SimpleProperty(
-      category = PropertyCategory.BEHAVIOR)
-  public int adcSensorValue() {
-    return adcSensorValue;
-  }
+	   * Returns the adcSensorValue.
+	   *
+	   * @return  adcSensorValue
+	   */
+	  @SimpleProperty(
+	      category = PropertyCategory.BEHAVIOR)
+	  public int adcSensorValue() {
+	    return adcSensorValue;
+	  }
+
 }

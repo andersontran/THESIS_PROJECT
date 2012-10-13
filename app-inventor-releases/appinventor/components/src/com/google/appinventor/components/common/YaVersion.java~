@@ -233,8 +233,6 @@ public class YaVersion {
 
   public static final int ACCELEROMETERSENSOR_COMPONENT_VERSION = 1;
 
-  public static final int PROXSENSOR_COMPONENT_VERSION = 1;
-
   // For ACTIVITYSTARTER_COMPONENT_VERSION 2:
   // - The ActivityStarter.DataType, ActivityStarter.ResultType, and ActivityStarter.ResultUri
   //   properties were added.

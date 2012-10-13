@@ -1,0 +1,104 @@
+package com.google.appinventor.components.runtime;
+
+import com.google.appinventor.components.annotations.DesignerComponent;
+import com.google.appinventor.components.annotations.DesignerProperty;
+import com.google.appinventor.components.annotations.PropertyCategory;
+import com.google.appinventor.components.annotations.SimpleEvent;
+import com.google.appinventor.components.annotations.SimpleObject;
+import com.google.appinventor.components.annotations.SimpleProperty;
+import com.google.appinventor.components.common.ComponentCategory;
+import com.google.appinventor.components.common.YaVersion;
+
+import java.io.IOException;
+
+import org.microbridge.server.AbstractServerListener;
+import org.microbridge.server.Server;
+
+public class SeeeduinoComponent extends AndroidNonvisibleComponent
+	implements OnStopListener, OnResumeListener, Deleteable {
+	
+	// Create TCP server (based on  MicroBridge LightWeight Server). 
+		// Note: This Server runs in a separate thread.
+		Server server = null;
+		
+		private int adcSensorValue=10;
+		
+	public SeeeduinoComponent(ComponentContainer container) {
+		super(container.$form());
+		form.registerForOnResume(this);
+		form.registerForOnStop(this);
+		
+		try
+		{
+			server = new Server(4568); //Use the same port number used in ADK Main Board firmware
+			server.start();			
+		} catch (IOException e)
+		{
+			//Log.e("Seeeduino ADK", "Unable to start TCP server", e);
+			System.exit(-1);
+		}
+		
+		server.addListener(new AbstractServerListener() {
+			 
+			@Override
+			public void onReceive(org.microbridge.server.Client client, byte[] data)
+			{
+ 
+				if (data.length<2) return;
+				adcSensorValue = (data[0] & 0xff) | ((data[1] & 0xff) << 8);
+ 
+ 
+			}
+ 
+		});
+	}
+
+	// OnResumeListener implementation
+
+	@Override
+	public void onResume() {
+		// if (enabled) {
+		startListening();
+		// }
+	}
+
+	private void startListening() {
+		// TODO Auto-generated method stub
+
+	}
+
+	// OnStopListener implementation
+
+	@Override
+	public void onStop() {
+		// if (enabled) {
+		stopListening();
+		// }
+	}
+
+	private void stopListening() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	// Deleteable implementation
+
+	@Override
+	public void onDelete() {
+		// if (enabled) {
+		stopListening();
+		// }
+	}
+	
+	/**
+	   * Returns the adcSensorValue.
+	   *
+	   * @return  adcSensorValue
+	   */
+	  @SimpleProperty(
+	      category = PropertyCategory.BEHAVIOR)
+	  public int adcSensorValue() {
+	    return adcSensorValue;
+	  }
+
+}
